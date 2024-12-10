@@ -1,2 +1,2 @@
-# lab2-arch
-lab2 architecture and accelerators implementations
+# COMPUTER ARCHITECTURE AND ACCELERATORS LABS
+All labs architecture and accelerators implementations
