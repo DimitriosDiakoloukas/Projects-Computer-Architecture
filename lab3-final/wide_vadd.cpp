@@ -45,58 +45,91 @@ Description:
 #define VECTOR_SIZE (DATAWIDTH / 32) // vector size is 16 (512/32 = 16)
 typedef ap_uint<DATAWIDTH> uint512_dt;
 
-extern "C" {
-    void matrix_mult(
-        const uint512_dt *in1, // Read-Only Matrix A
-        const uint512_dt *in2, // Read-Only Matrix B
-        uint512_dt *out,       // Output Matrix C
-        int m,                 // Rows of A
-        int n,                 // Columns of A / Rows of B
-        int p                  // Columns of B
-    ) {
+//TRIPCOUNT identifier
+const unsigned int c_chunk_sz = BUFFER_SIZE;
+const unsigned int c_size     = VECTOR_SIZE;
+
+/*
+    Vector Addition Kernel Implementation using uint512_dt datatype
+    Arguments:
+        in1   (input)     --> Input Vector1
+        in2   (input)     --> Input Vector2
+        out   (output)    --> Output Vector
+        size  (input)     --> Size of Vector in Integer
+   */
+extern "C"
+{
+    void vadd(
+        const uint512_dt *in1, // Read-Only Vector 1
+        const uint512_dt *in2, // Read-Only Vector 2
+        uint512_dt *out,       // Output Result
+        int size               // Size in integer
+    )
+    {
 #pragma HLS INTERFACE m_axi port = in1 bundle = gmem
 #pragma HLS INTERFACE m_axi port = in2 bundle = gmem1
 #pragma HLS INTERFACE m_axi port = out bundle = gmem2
 #pragma HLS INTERFACE s_axilite port = in1 bundle = control
 #pragma HLS INTERFACE s_axilite port = in2 bundle = control
 #pragma HLS INTERFACE s_axilite port = out bundle = control
-#pragma HLS INTERFACE s_axilite port = m bundle = control
-#pragma HLS INTERFACE s_axilite port = n bundle = control
-#pragma HLS INTERFACE s_axilite port = p bundle = control
+#pragma HLS INTERFACE s_axilite port = size bundle = control
 #pragma HLS INTERFACE s_axilite port = return bundle = control
 
-        uint512_dt v1_local[BUFFER_SIZE]; // Local memory for Matrix A
-        uint512_dt v2_local[BUFFER_SIZE]; // Local memory for Matrix B
-        uint512_dt result_local[BUFFER_SIZE]; // Local memory for Matrix C
+        uint512_dt v1_local[BUFFER_SIZE]; // Local memory to store vector1
+        uint512_dt v2_local[BUFFER_SIZE];
+        uint512_dt result_local[BUFFER_SIZE]; // Local Memory to store result
 
-#pragma HLS STREAM variable = v1_local depth = 64
-#pragma HLS STREAM variable = v2_local depth = 64
-#pragma HLS STREAM variable = result_local depth = 64
+        // Input vector size for integer vectors. However kernel is directly
+        // accessing 512bit data (total 16 elements). So total number of read
+        // from global memory is calculated here:
+        int size_in16 = (size - 1) / VECTOR_SIZE + 1;
+
+        //Per iteration of this loop perform BUFFER_SIZE vector addition
+        for (int i = 0; i < size_in16; i += BUFFER_SIZE) {
+//#pragma HLS PIPELINE
 #pragma HLS DATAFLOW
+#pragma HLS stream variable = v1_local depth = 64
+#pragma HLS stream variable = v2_local depth = 64
 
-        for (int i = 0; i < m; i++) { // Loop over rows of A
-            for (int j = 0; j < p; j++) { // Loop over columns of B
-                uint512_dt tmpOut = 0; // To store the result of one output element
-                for (int k = 0; k < n; k += VECTOR_SIZE) { // Loop over columns of A and rows of B
-#pragma HLS PIPELINE
-                    uint512_dt tmpV1 = in1[i * n / VECTOR_SIZE + k / VECTOR_SIZE];
-                    uint512_dt tmpV2 = in2[k / VECTOR_SIZE * p / VECTOR_SIZE + j / VECTOR_SIZE];
+            int chunk_size = BUFFER_SIZE;
 
-                    // Perform multiplication and summation
-                    for (int vector = 0; vector < VECTOR_SIZE; vector++) {
-#pragma HLS UNROLL
-                        ap_uint<32> tmp1 = tmpV1.range(32 * (vector + 1) - 1, vector * 32);
-                        ap_uint<32> tmp2 = tmpV2.range(32 * (vector + 1) - 1, vector * 32);
-                        ap_uint<32> tmpResult = tmp1 * tmp2;
+            //boundary checks
+            if ((i + BUFFER_SIZE) > size_in16)
+                chunk_size = size_in16 - i;
 
-                        // Sum the results into tmpOut
-                        ap_uint<32> prevSum = tmpOut.range(32 * (vector + 1) - 1, vector * 32);
-                        tmpOut.range(32 * (vector + 1) - 1, vector * 32) = prevSum + tmpResult;
-                    }
+        //burst read first vector from global memory to local memory
+        v1_rd:
+            for (int j = 0; j < chunk_size; j++) {
+#pragma HLS pipeline
+#pragma HLS LOOP_TRIPCOUNT min = 1 max = 64
+                for (int k = 0; k < chunk_size; k++) {
+                    v1_local[k] = in1[i * chunk_size + k];
+                    v2_local[k] = in2[k * chunk_size + j];
                 }
-                // Write result to output matrix
-                out[i * p / VECTOR_SIZE + j / VECTOR_SIZE] = tmpOut;
             }
+        //burst read second vector and perform vector addition
+        add:
+			for (int j = 0; j < chunk_size; j++) {
+			#pragma HLS pipeline
+			#pragma HLS LOOP_TRIPCOUNT min = 1 max = 64
+                for (int k = 0; k < chunk_size; k++) {
+                    uint512_dt tmpV1 = v1_local[k];
+                    uint512_dt tmpV2 = v2_local[k];
+                    uint512_dt result_temp = 0;
+
+                    for (int vector = 0; vector < VECTOR_SIZE; vector++) {
+                    #pragma HLS UNROLL
+                        ap_uint<32> tmp1 = v1_local[k].range(32 * (vector + 1) - 1, vector * 32);
+                        ap_uint<32> tmp2 = v2_local[k].range(32 * (vector + 1) - 1, vector * 32);
+                        ap_uint<32> product = tmp1 * tmp2;
+
+                        ap_uint<32> current_result = result_temp.range(32 * (vector + 1) - 1, vector * 32);
+                        result_temp.range(32 * (vector + 1) - 1, vector * 32) = current_result + product;
+                    }
+
+                    result[i * chunk_size + j] = result_temp;
+                }
+			}
         }
     }
 }
