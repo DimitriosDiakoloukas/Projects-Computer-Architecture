@@ -22,7 +22,8 @@
 // datatype
 // to read the operands from Global Memory. So every read/write to global memory
 // will read 16 integers value.
-#define DATA_SIZE 16384
+#define DATA_SIZE 4096
+#define DIMS_SIZE 64
 
 int main(int argc, char** argv) {
     if (argc != 2) {
@@ -55,8 +56,15 @@ int main(int argc, char** argv) {
 
     et.add("Software VADD run");
     // Software Result
-    for (int i = 0; i < DATA_SIZE; i++) {
-        source_sw_results[i] = source_in1[i] + source_in2[i];
+    for (int i = 0; i < DIMS_SIZE; i++) {
+        for (int j = 0; j < DIMS_SIZE; j++) {
+            unsigned int sum = 0;
+            for (int k = 0; k < DIMS_SIZE; k++) {
+                sum += source_in1[i * DIMS_SIZE + k] * source_in2[k * DIMS_SIZE + j]; // Accessing as 1D array
+            }
+            source_sw_results[i * DIMS_SIZE + j] = sum; // Storing result in 1D array
+            source_hw_results[i * DIMS_SIZE + j] = 0; // Initialize hardware results to 0
+        }
     }
     et.finish();
 
@@ -139,14 +147,18 @@ int main(int argc, char** argv) {
 
     et.add("Compare the results of the Device to the simulation");
     // Compare the results of the Device to the simulation
-    int match = 0;
-    for (int i = 0; i < DATA_SIZE; i++) {
-        if (source_hw_results[i] != source_sw_results[i]) {
-            std::cout << "Error: Result mismatch" << std::endl;
-            std::cout << "i = " << i << " CPU result = " << source_sw_results[i]
-                      << " Device result = " << source_hw_results[i] << std::endl;
-            match = 1;
-            break;
+    bool match = true;
+    for (int i = 0; i < DIMS_SIZE; i++) { //The outer loop
+        for (int j = 0; j < DIMS_SIZE; j++) { //The inner loop
+            //Accessing elements using 1D indexing
+            if (source_hw_results[i * DIMS_SIZE + j] != source_sw_results[i * DIMS_SIZE + j]) {
+                std::cout << "Error: Result mismatch" << std::endl;
+                std::cout << "i = " << i << " j = " << j
+                            << " CPU result = " << source_sw_results[i * DIMS_SIZ + j]
+                            << " Device result = " << source_hw_results[i * DIMS_SIZE + j] << std::endl;
+                match = false;
+                break; // Break out of the inner loop on mismatch
+            }
         }
     }
     et.finish();
