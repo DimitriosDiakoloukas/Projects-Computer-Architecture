@@ -154,7 +154,7 @@ int main(int argc, char** argv) {
             if (source_hw_results[i * DIMS_SIZE + j] != source_sw_results[i * DIMS_SIZE + j]) {
                 std::cout << "Error: Result mismatch" << std::endl;
                 std::cout << "i = " << i << " j = " << j
-                            << " CPU result = " << source_sw_results[i * DIMS_SIZ + j]
+                            << " CPU result = " << source_sw_results[i * DIMS_SIZE+ j]
                             << " Device result = " << source_hw_results[i * DIMS_SIZE + j] << std::endl;
                 match = false;
                 break; // Break out of the inner loop on mismatch
