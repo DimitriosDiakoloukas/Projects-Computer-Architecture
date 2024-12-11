@@ -127,7 +127,7 @@ extern "C"
                         result_temp.range(32 * (vector + 1) - 1, vector * 32) = current_result + product;
                     }
 
-                    result[i * chunk_size + j] = result_temp;
+                    out[i * chunk_size + j] = result_temp;
                 }
 			}
         }
