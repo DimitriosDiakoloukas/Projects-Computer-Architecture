@@ -79,6 +79,8 @@ extern "C"
         uint512_dt v2_local[BUFFER_SIZE];
         uint512_dt result_local[BUFFER_SIZE]; // Local Memory to store result
 
+int chunk_size = BUFFER_SIZE;
+	    
             for (int j = 0; j < chunk_size; j++) {	//traverses each row of 1st matrix
 // #pragma HLS pipeline
 // #pragma HLS LOOP_TRIPCOUNT min = 1 max = 16
