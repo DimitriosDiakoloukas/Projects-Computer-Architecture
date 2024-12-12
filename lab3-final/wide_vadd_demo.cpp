@@ -59,11 +59,11 @@ extern "C"
                     ap_uint<32> b = v2_local[j].range(32 * (k + 1) - 1, 32 * k);
                     sum += a * b;
                 }
-
                 // Write the result back to the corresponding position
-                result_local[j].range(32 * (i + 1) - 1, 32 * i) = sum;
+                result_local[i].range(32 * (j + 1) - 1, 32 * j) = sum;
             }
             out[i] = result_local[i]; // Store the final row into the output
         }
     }
 }
+
