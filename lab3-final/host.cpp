@@ -22,8 +22,8 @@
 // datatype
 // to read the operands from Global Memory. So every read/write to global memory
 // will read 16 integers value.
-#define DATA_SIZE 4096
-#define DIMS_SIZE 64
+#define DATA_SIZE 256
+#define DIMS_SIZE 16
 
 int main(int argc, char** argv) {
     if (argc != 2) {
