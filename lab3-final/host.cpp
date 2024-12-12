@@ -66,6 +66,13 @@ int main(int argc, char** argv) {
             source_hw_results[i * DIMS_SIZE + j] = 0; // Initialize hardware results to 0
         }
     }
+	
+	//Transposes the in2 matrix to be fed in the hw function
+    for (int i = 0; i < DIMS_SIZE; i++)
+        for (int j = i+1; j < DIMS_SIZE; j++)
+            swap(in2[i * DIMS_SIZE + j], in2[j * DIMS_SIZE + i]);
+	
+	
     et.finish();
 
     et.add("OpenCL host code");
