@@ -77,41 +77,52 @@ extern "C"
 
         uint512_dt v1_local[BUFFER_SIZE]; // Local memory to store vector1
         uint512_dt v2_local[BUFFER_SIZE];
-        uint512_dt result_local[BUFFER_SIZE]; // Local Memory to store result
+        // uint512_dt result_local[BUFFER_SIZE]; // Local Memory to store result
 
 int chunk_size = BUFFER_SIZE;
+ap_uint<32> current_result = 0;
+uint512_dt result_local = 0;
 
             for (int j = 0; j < chunk_size; j++) {	//traverses each row of 1st matrix
 // #pragma HLS pipeline
 // #pragma HLS LOOP_TRIPCOUNT min = 1 max = 16
                     // v1_local[j] = in1[i * chunk_size + j];	//deprecated, we dont need i loop
                     v1_local[j] = in1[j];
+					std::out << "\nv1_local[j]:\t" << v1_local[j] << std::endl;
                 for (int k = 0; k < chunk_size; k++) {	//traverses each row of 2nd matrix
 // #pragma HLS pipeline
 // #pragma HLS LOOP_TRIPCOUNT min = 1 max = 16
                     // v2_local[k] = in2[i * chunk_size + k];	//deprecated, we dont need i loop
                     v2_local[k] = in2[k];
-					
-					ap_uint<32> current_result = 0;
-					uint512_dt result_local = 0;
+					std::out << "\nv1_local[j]:\t" << v1_local[j] << std::endl;
+					current_result = 0;
+					result_local = 0;
 					
 					for (int vector = 0; vector < VECTOR_SIZE; vector++) {	//traverses all elements of each given row
                     #pragma HLS UNROLL
                         ap_uint<32> tmp1 = v1_local[j].range(32 * (vector + 1) - 1, vector * 32);	//the row of the 1st matrix
                         ap_uint<32> tmp2 = v2_local[k].range(32 * (vector + 1) - 1, vector * 32);	//the row of the 2nd matrix
                         ap_uint<32> product = tmp1 * tmp2;
-
-                        current_result = current_result + product;	//evaluates a single element once this loop ends
-                    }
+                        
+						current_result = current_result + product;	//evaluates a single element once this loop ends
+						//prints all variables you see here
+						std::out << "\nv1_local[j].range(32 * (vector + 1) - 1, vector * 32):\t" << v1_local[j].range(32 * (vector + 1) - 1, vector * 32)
+								 << "\nv2_local[k].range(32 * (vector + 1) - 1, vector * 32):\t" << v2_local[k].range(32 * (vector + 1) - 1, vector * 32)
+								 << "\ntmp1:\t" << tmp1 << "\ttmp2:\t" << tmp2 << "\tcurrent_result:\t" << current_result << std::endl;
+					}
 					result_local.range(32 * (k + 1) - 1, k * 32) = current_result;			//using k instead of vector, cuz vector exists only in the above loop. both vector and k go from 0 to 15
 																							//when vector loop ends: 1element
 																							//when k loop ends: 1 row
 																							//when j loop ends: all matrix
+					std::out << "\nresult_local.range(32 * (k + 1) - 1, k * 32)]:\t" << result_local.range(32 * (k + 1) - 1, k * 32) << std::endl;
 				}
 				// out[i * chunk_size + j] = result_local;	//deprecated, we dont need i loop
 				out[j] = result_local;	//saves each row to each row of our matrix
 										//each result temp contains 16 elements (one row)
 										//each out[] element contains 16 elements (one row)
+				std::out << "\nout[j]:\t" << out[j] << std::endl;
 		}
+		
+		std::out << "\n" << std::endl;
 	}
 }
