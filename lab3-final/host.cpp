@@ -69,12 +69,14 @@ int main(int argc, char** argv) {
 
     //Transposes the in2 matrix to be fed in the hw function
     for (int i = 0; i < DIMS_SIZE; i++) {
-        for (int j = i+1; j < DIMS_SIZE; j++) {
-            swap(in2[i * DIMS_SIZE + j], in2[j * DIMS_SIZE + i]);
+        for (int j = 0; j < DIMS_SIZE; j++) {
+        	unsigned int tempV = source_in2[i * DIMS_SIZE + j];
+        	source_in2[i * DIMS_SIZE + j] = source_in2[j * DIMS_SIZE + i];
+        	source_in2[j * DIMS_SIZE + i] = tempV;
         }
     }
-    
-    
+
+
     et.finish();
 
     et.add("OpenCL host code");
@@ -153,6 +155,14 @@ int main(int argc, char** argv) {
     // OPENCL HOST CODE AREA END
 
 
+    printf("\n");
+        for (int i = 0; i < DIMS_SIZE; i++) {
+            for (int j = 0; j < DIMS_SIZE; j++) {
+                printf("%u\t", source_hw_results[i * DIMS_SIZE + j]);
+            }
+            printf("\n");
+        }
+        printf("\n");
 
     et.add("Compare the results of the Device to the simulation");
     // Compare the results of the Device to the simulation
@@ -178,3 +188,4 @@ int main(int argc, char** argv) {
     std::cout << "TEST " << (match ? "FAILED" : "PASSED") << std::endl;
     return (match ? EXIT_FAILURE : EXIT_SUCCESS);
 }
+
