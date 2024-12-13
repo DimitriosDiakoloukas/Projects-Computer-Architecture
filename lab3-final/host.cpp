@@ -203,7 +203,7 @@ int main(int argc, char** argv) {
     std::cout <<"----------------- Key execution times -----------------" << std::endl;
     et.print();
 
-    std::cout << "TEST " << (match ? "FAILED" : "PASSED") << std::endl;
+    std::cout << "TEST " << (!(match) ? "FAILED" : "PASSED") << std::endl;
     return (match ? EXIT_FAILURE : EXIT_SUCCESS);
 }
 
