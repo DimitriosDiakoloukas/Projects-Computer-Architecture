@@ -55,7 +55,7 @@ extern "C"
         // {
 // #pragma HLS PIPELINE
             //load a column of Matrix 2 into local memory
-            // v2_local[j] = in2[j];
+            // v2_local[i] = in2[i];
         // }
 
         for (int i = 0; i < BUFFER_SIZE; i++) //Iterate over rows of Matrix 1
