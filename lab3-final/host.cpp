@@ -68,13 +68,13 @@ int main(int argc, char** argv) {
     }
 
     //Transposes the in2 matrix to be fed in the hw function
-    for (int i = 0; i < DIMS_SIZE; i++) {
-        for (int j = i+1; j < DIMS_SIZE; j++) {
-        	unsigned int tempV = source_in2[i * DIMS_SIZE + j];
-        	source_in2[i * DIMS_SIZE + j] = source_in2[j * DIMS_SIZE + i];
-        	source_in2[j * DIMS_SIZE + i] = tempV;
-        }
-    }
+    // for (int i = 0; i < DIMS_SIZE; i++) {
+        // for (int j = i+1; j < DIMS_SIZE; j++) {
+        	// unsigned int tempV = source_in2[i * DIMS_SIZE + j];
+        	// source_in2[i * DIMS_SIZE + j] = source_in2[j * DIMS_SIZE + i];
+        	// source_in2[j * DIMS_SIZE + i] = tempV;
+        // }
+    // }
 
 
     et.finish();
