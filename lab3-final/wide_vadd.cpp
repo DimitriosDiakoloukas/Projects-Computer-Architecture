@@ -15,7 +15,7 @@ extern "C"
 {
     void vadd(
         const uint512_dt *in1, // Read-Only Matrix 1
-        const uint512_dt *in2, // Read-Only Matrix 2
+        const uint512_dt *in2, // Read-Only Matrix 2 (comes pre-transposed!)
         uint512_dt *out,       // Output Result
         int size               // Size in integer
     )
@@ -28,41 +28,63 @@ extern "C"
 #pragma HLS INTERFACE s_axilite port = out bundle = control
 #pragma HLS INTERFACE s_axilite port = size bundle = control
 #pragma HLS INTERFACE s_axilite port = return bundle = control
-
+		//matrices which we will use
         uint512_dt v1_local[BUFFER_SIZE];
         uint512_dt v2_local[BUFFER_SIZE];
         uint512_dt result_local[BUFFER_SIZE];
-
+		//variables which we will use
+		ap_uint<32> sum;
+		ap_uint<32> a;
+		ap_uint<32> b;
+		
         for (int i = 0; i < BUFFER_SIZE; i++) // Iterate over rows of Matrix 1
         {
 #pragma HLS PIPELINE
-            // Load a row of Matrix 1 into local memory
+#pragma HLS LOOP_TRIPCOUNT min = 1 max = BUFFER_SIZE
+            //load a row of Matrix 1 into local memory
             v1_local[i] = in1[i];
-        }
-
-        for (int j = 0; j < BUFFER_SIZE; j++) // Iterate over columns of Matrix 2
-        {
-#pragma HLS PIPELINE
-            // Load a column of Matrix 2 into local memory
+			//load a column of Matrix 2 into local memory
             v2_local[j] = in2[j];
         }
+		
+//lab2 optimisations:
+#pragma HLS ARRAY_PARTITION variable=v1_local type=complete dim=1
+#pragma HLS ARRAY_PARTITION variable=v2_local type=complete dim=1
+	
+        // for (int j = 0; j < BUFFER_SIZE; j++) // Iterate over columns of Matrix 2
+        // {
+// #pragma HLS PIPELINE
+            //load a column of Matrix 2 into local memory
+            // v2_local[j] = in2[j];
+        // }
 
-        for (int i = 0; i < BUFFER_SIZE; i++) // Iterate over rows of Matrix 1
+        for (int i = 0; i < BUFFER_SIZE; i++) //Iterate over rows of Matrix 1
         {
-            for (int j = 0; j < BUFFER_SIZE; j++) // Iterate over columns of Matrix 2
+#pragma HLS LOOP_TRIPCOUNT min = 1 max = BUFFER_SIZE
+            for (int j = 0; j < BUFFER_SIZE; j++) //Iterate over columns of Matrix 2
             {
-                ap_uint<32> sum = 0;
-                for (int k = 0; k < VECTOR_SIZE; k++) // Perform the dot product
+#pragma HLS LOOP_TRIPCOUNT min = 1 max = BUFFER_SIZE
+                // ap_uint<32> sum = 0;
+                sum = 0;
+                for (int k = 0; k < VECTOR_SIZE; k++) //Perform the dot product (a single number), by traversing 2 rows of source_in1 and 2 (or 2 elements of in1 and 2)
                 {
-#pragma HLS UNROLL
-                    ap_uint<32> a = v1_local[i].range(32 * (k + 1) - 1, 32 * k);
-                    ap_uint<32> b = v2_local[j].range(32 * (k + 1) - 1, 32 * k);
+//lab2 optimisation:
+#pragma HLS PIPELINE
+#pragma HLS LOOP_TRIPCOUNT min = 1 max = VECTOR_SIZE
+
+                    // ap_uint<32> a = v1_local[i].range(32 * (k + 1) - 1, 32 * k);
+                    a = v1_local[i].range(32 * (k + 1) - 1, 32 * k);
+                    // ap_uint<32> b = v2_local[j].range(32 * (k + 1) - 1, 32 * k);
+                    b = v2_local[j].range(32 * (k + 1) - 1, 32 * k);
                     sum += a * b;
                 }
-                // Write the result back to the corresponding position
+                //Write the result back to the corresponding position
                 result_local[i].range(32 * (j + 1) - 1, 32 * j) = sum;
+				//when k loop ends: 1 element of source_hw is written
+				//when j loop ends: 1 row of source_hw (1 element of out[]) is written
+				//when i loop ends: all matrix is written
             }
-            out[i] = result_local[i]; // Store the final row into the output
+            out[i] = result_local[i]; //Store the final row of source_hw (or 1 element of result_local) into the output
         }
     }
 }
