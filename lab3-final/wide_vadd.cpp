@@ -50,7 +50,10 @@ extern "C"
 
 	//Transposes the v2_local (source_in2) matrix to be fed in the multiplication function
 	for (int i = 0; i < BUFFER_SIZE; i++) {
+#pragma HLS LOOP_TRIPCOUNT min = 1 max = BUFFER_SIZE
 		 for (int j = i+1; j < BUFFER_SIZE; j++) {
+#pragma HLS PIPELINE
+#pragma HLS LOOP_TRIPCOUNT min = 1 max = BUFFER_SIZE
 			 temp = v2_local[i].range(32 * (j + 1) - 1, 32 * j);
 			 v2_local[i].range(32 * (j + 1) - 1, 32 * j) = v2_local[j].range(32 * (i + 1) - 1, 32 * i);
 			 v2_local[j].range(32 * (i + 1) - 1, 32 * i) = temp;
@@ -101,4 +104,3 @@ extern "C"
         }
     }
 }
-
