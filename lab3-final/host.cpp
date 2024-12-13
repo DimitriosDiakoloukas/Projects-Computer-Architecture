@@ -154,7 +154,7 @@ int main(int argc, char** argv) {
     et.finish();
     // OPENCL HOST CODE AREA END
 
-
+	//Prints In2 (transposed) matrix
     printf("\nin2\n");
         for (int i = 0; i < DIMS_SIZE; i++) {
             for (int j = 0; j < DIMS_SIZE; j++) {
@@ -163,7 +163,7 @@ int main(int argc, char** argv) {
             printf("\n");
         }
         printf("\n");
-
+	//Prints SW matrix
 	printf("\nsw\n");
 		for (int i = 0; i < DIMS_SIZE; i++) {
 			for (int j = 0; j < DIMS_SIZE; j++) {
@@ -172,7 +172,7 @@ int main(int argc, char** argv) {
 			printf("\n");
 		}
 		printf("\n");
-
+	//Prints HW matrix
     printf("\nhw\n");
         for (int i = 0; i < DIMS_SIZE; i++) {
             for (int j = 0; j < DIMS_SIZE; j++) {
