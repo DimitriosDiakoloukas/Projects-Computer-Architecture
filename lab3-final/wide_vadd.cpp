@@ -15,7 +15,7 @@ extern "C"
 {
     void vadd(
         const uint512_dt *in1, // Read-Only Matrix 1
-        const uint512_dt *in2, // Read-Only Matrix 2 (comes pre-transposed!)
+        const uint512_dt *in2, // Read-Only Matrix 2
         uint512_dt *out,       // Output Result
         int size               // Size in integer
     )
@@ -36,6 +36,7 @@ extern "C"
 		ap_uint<32> sum;
 		ap_uint<32> a;
 		ap_uint<32> b;
+		ap_uint<32> temp;
 		
         for (int i = 0; i < BUFFER_SIZE; i++) // Iterate over rows of Matrix 1
         {
@@ -44,9 +45,21 @@ extern "C"
             //load a row of Matrix 1 into local memory
             v1_local[i] = in1[i];
 			//load a column of Matrix 2 into local memory
-            v2_local[j] = in2[j];
+            v2_local[i] = in2[i];
         }
-		
+
+	//Transposes the v2_local (source_in2) matrix to be fed in the multiplication function
+	for (int i = 0; i < BUFFER_SIZE; i++) {
+		 for (int j = i+1; j < BUFFER_SIZE; j++) {
+			 temp = v2_local[i].range(32 * (j + 1) - 1, 32 * j);
+			 v2_local[i].range(32 * (j + 1) - 1, 32 * j) = v2_local[j].range(32 * (i + 1) - 1, 32 * i);
+			 v2_local[j].range(32 * (i + 1) - 1, 32 * i) = temp;
+			 //v2_local[i].range(32 * (j + 1) - 1, 32 * j); //traverses row right
+			 //v2_local[j].range(32 * (i + 1) - 1, 32 * i); //traverse collumn down
+		 }
+	}
+
+
 //lab2 optimisations:
 #pragma HLS ARRAY_PARTITION variable=v1_local type=complete dim=1
 #pragma HLS ARRAY_PARTITION variable=v2_local type=complete dim=1
@@ -55,7 +68,7 @@ extern "C"
         // {
 // #pragma HLS PIPELINE
             //load a column of Matrix 2 into local memory
-            // v2_local[i] = in2[i];
+            // v2_local[j] = in2[j];
         // }
 
         for (int i = 0; i < BUFFER_SIZE; i++) //Iterate over rows of Matrix 1
